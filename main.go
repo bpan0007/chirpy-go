@@ -17,35 +17,52 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
+	platform       string
 }
 
 func main() {
+
 	const filepathRoot = "."
 	// const metricsPath = "/Users/bpantin/chirpy-go/metrics"
 	const port = "8080"
 
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+	env := os.Getenv("PLATFORM")
+	log.Printf("Database URL: %s", dbURL)
 
 	dbConn, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("Error opening database: %s", err)
 	}
+	// At the start of your main function
+	if err := dbConn.Ping(); err != nil {
+		log.Fatalf("Unable to connect to database: %v", err)
+	}
+	var testConnect int
+	// In your main function after initializing the database
+	if err := dbConn.QueryRow("SELECT 1").Scan(&testConnect); err != nil {
+		log.Fatalf("Could not connect to the database: %v", err)
+	}
+	log.Printf("Database connection successful")
 
 	dbQueries := database.New(dbConn)
 
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		dbQueries:      dbQueries,
+		platform:       env,
 	}
 
 	mux := http.NewServeMux()
+
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	//mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("GET /admin/metrics/", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("POST /api/validate_chirp", handlerChirpsValidate)
+	mux.HandleFunc("POST /api/users", apiCfg.createUsers)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

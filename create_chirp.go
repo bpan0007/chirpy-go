@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -82,4 +83,30 @@ func getCleanedBody(body string, badWords map[string]struct{}) string {
 	}
 	cleaned := strings.Join(words, " ")
 	return cleaned
+}
+
+func (cfg *apiConfig) getAllChirps(w http.ResponseWriter, r *http.Request) {
+
+	chirps, err := cfg.db.GetAllChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get users", err)
+		return
+	}
+	// Sort the users in ascending order by creation date
+	sort.Slice(chirps, func(i, j int) bool {
+		return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+	})
+
+	// Convert the users to the desired response format
+	var chirpsResponse []Chirp
+	for _, chirp := range chirps {
+		chirpsResponse = append(chirpsResponse, Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, chirpsResponse)
 }

@@ -35,7 +35,7 @@ func (cfg *apiConfig) createUsers(w http.ResponseWriter, r *http.Request) {
 	// Try to create the user
 	log.Printf("Attempting to create user in database")
 	// Create user in database
-	user, err := cfg.dbQueries.CreateUser(r.Context(), req.Email)
+	user, err := cfg.db.CreateUser(r.Context(), req.Email)
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)

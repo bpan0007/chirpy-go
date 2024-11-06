@@ -14,7 +14,7 @@ func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Attempting to delete all users")
 
-	err := cfg.dbQueries.DeleteAllUsers(r.Context())
+	err := cfg.db.DeleteAllUsers(r.Context())
 	if err != nil {
 		log.Printf("Error deleting users: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't delete users", err)

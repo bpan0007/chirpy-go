@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -109,4 +111,39 @@ func (cfg *apiConfig) getAllChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, chirpsResponse)
+}
+
+func (cfg *apiConfig) GetChirpByID(w http.ResponseWriter, r *http.Request) {
+
+	chirpID := r.PathValue("id")
+
+	log.Printf("Received request to get user with ID: %s", chirpID)
+
+	// Convert the userID string to a UUID
+	id, err := uuid.Parse(chirpID)
+	if err != nil {
+		log.Printf("Error parsing user ID: %v", err)
+		respondWithError(w, http.StatusBadRequest, "Invalid user ID", err)
+		return
+	}
+	chirp, err := cfg.db.GetChirpByID(r.Context(), id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("User not found with ID: %s", chirpID)
+			respondWithError(w, http.StatusNotFound, "User not found", err)
+			return
+		}
+		log.Printf("Error getting user by ID: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get user", err)
+		return
+	}
+
+	chirpResponse := Chirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+	}
+
+	respondWithJSON(w, http.StatusOK, chirpResponse)
 }

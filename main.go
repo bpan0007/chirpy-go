@@ -18,6 +18,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 func main() {
@@ -29,6 +30,8 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	env := os.Getenv("PLATFORM")
+	jwt_secret := os.Getenv("JWT_SECRET")
+	log.Printf(jwt_secret)
 	log.Printf("Database URL: %s", dbURL)
 
 	dbConn, err := sql.Open("postgres", dbURL)
@@ -52,6 +55,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		platform:       env,
+		jwtSecret:      jwt_secret,
 	}
 
 	mux := http.NewServeMux()
@@ -62,7 +66,9 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics/", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
-	mux.HandleFunc("POST /api/users", apiCfg.createUsers)
+	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
+	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
 	mux.HandleFunc("POST /api/login", apiCfg.login)
 	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.GetChirpByID)
 	mux.HandleFunc("GET /api/chirps", apiCfg.getAllChirps)

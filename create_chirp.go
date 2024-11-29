@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bpan0007/chirpy-go/internal/auth"
 	"github.com/bpan0007/chirpy-go/internal/database"
 	"github.com/google/uuid"
 )
@@ -27,10 +28,24 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		Body   string    `json:"body"`
 		UserID uuid.UUID `json:"user_id"`
 	}
+	// Extract the Bearer token from the request headers
+	token, err := auth.GetBearerToken(r.Header)
+	log.Printf("Token in create_chirp: %s", token)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized 1", err)
+		return
+	}
 
+	// Validate the JWT
+	log.Printf("cgf.jwtSecret: %s", cfg.jwtSecret)
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized 2 ", err)
+		return
+	}
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
@@ -44,7 +59,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleaned,
-		UserID: params.UserID,
+		UserID: userID,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)

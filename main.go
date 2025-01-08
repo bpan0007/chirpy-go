@@ -31,8 +31,6 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	env := os.Getenv("PLATFORM")
 	jwt_secret := os.Getenv("JWT_SECRET")
-	log.Printf(jwt_secret)
-	log.Printf("Database URL: %s", dbURL)
 
 	dbConn, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -71,8 +69,9 @@ func main() {
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
 	mux.HandleFunc("POST /api/login", apiCfg.login)
 	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.GetChirpByID)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerChirpsDelete)
 	mux.HandleFunc("GET /api/chirps", apiCfg.getAllChirps)
-
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: mux,

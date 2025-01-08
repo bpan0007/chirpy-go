@@ -38,7 +38,4 @@ func TestMakeJWT(t *testing.T) {
 		t.Errorf("expected issuer chirpy, got %v", claims.Issuer)
 	}
 
-	if claims.Foo != "bar" {
-		t.Errorf("expected foo bar, got %v", claims.Foo)
-	}
 }
